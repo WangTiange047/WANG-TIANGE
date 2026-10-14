@@ -9,16 +9,16 @@ report: final empirical report pdf.
 ai_use_disclosure.md: AI usage documentation.
 
 ## Data Information
-- Data source: Course-provided package **01_DID.zip**, `public.csv`.
-- The raw `public.csv` file is downloaded in my computer.
+Data source: Course-provided package **01_DID.zip**, `public.csv`.
+The raw `public.csv` file is downloaded in my computer.
 
-- ## How to Reproduce the Results
+## How to Reproduce the Results
 1. Download and extract `01_DID.zip` to your local machine.
 2. Open Stata and modify the file path inside `code` to point to your local `public.csv`.
 3. Execute `code.do`,which will automatically run data cleaning and baseline replication.
 4. All regression outputs, like tables and figures files will be saved into the `output` folder.
 
-## Software & Version
+## Software
 Software: Stata
 
 ## Main Analysis Content
