@@ -1,0 +1,92 @@
+*==============================================================================
+* Replication of Card & Krueger (1994, AER) Figure 1
+* Distribution of Starting Wage Rates - side-by-side bars
+*==============================================================================
+
+clear all
+set more off
+
+*---- 1. Import data ----------------------------------------------------------
+import delimited "E:/HKU ECON/6067/01_DID/data/public.csv", clear
+rename *, lower
+
+*---- 2. Prepare wage variables ----------------------------------------------
+gen nj = (state == 1)
+label define njlab 0 "Pennsylvania" 1 "New Jersey"
+label values nj njlab
+
+* Keep only wages inside 4.25-5.55
+gen wage1 = wage_st  if wage_st  != . & wage_st  >= 4.25 & wage_st  <= 5.55
+gen wage2 = wage_st2 if wage_st2 != . & wage_st2 >= 4.25 & wage_st2 <= 5.55
+
+*---- 3. Collapse to bins ----------------------------------------------------
+* Bin midpoints for x-axis: 4.30, 4.40, ..., 5.50
+* (each bin covers [4.25,4.35), [4.35,4.45), ...)
+gen bin1 = floor((wage1 - 4.25) / 0.10) * 0.10 + 4.30
+gen bin2 = floor((wage2 - 4.25) / 0.10) * 0.10 + 4.30
+
+* Store totals for each wave & group
+preserve
+    keep if wage1 != .
+    contract nj bin1
+    bysort nj: egen tot1 = total(_freq)
+    gen pct1 = 100 * _freq / tot1
+    keep nj bin1 pct1
+    rename bin1 bin
+    tempfile w1
+    save `w1'
+restore
+
+preserve
+    keep if wage2 != .
+    contract nj bin2
+    bysort nj: egen tot2 = total(_freq)
+    gen pct2 = 100 * _freq / tot2
+    keep nj bin2 pct2
+    rename bin2 bin
+    tempfile w2
+    save `w2'
+restore
+
+*---- 4. Figure 1a: February 1992 --------------------------------------------
+use `w1', clear
+
+* Offset PA to the left, NJ to the right
+gen x_pa = bin - 0.02 if nj == 0
+gen x_nj = bin + 0.02 if nj == 1
+
+twoway ///
+    (bar pct1 x_pa if nj == 0, barwidth(0.04) color(gs12) lcolor(black)) ///
+    (bar pct1 x_nj if nj == 1, barwidth(0.04) color(black) lcolor(black)), ///
+    legend(order(1 "Pennsylvania" 2 "New Jersey") rows(1) position(6)) ///
+    xtitle("Wage Range") ytitle("Percent of Stores") ///
+    xlabel(4.30(0.10)5.50, angle(45) labsize(small)) ///
+    ylabel(0(5)35) ///
+    title("February 1992") ///
+    graphregion(color(white)) plotregion(color(white)) ///
+    name(fig1a, replace)
+
+*---- 5. Figure 1b: November 1992 --------------------------------------------
+use `w2', clear
+
+gen x_pa = bin - 0.02 if nj == 0
+gen x_nj = bin + 0.02 if nj == 1
+
+twoway ///
+    (bar pct2 x_pa if nj == 0, barwidth(0.04) color(gs12) lcolor(black)) ///
+    (bar pct2 x_nj if nj == 1, barwidth(0.04) color(black) lcolor(black)), ///
+    legend(order(1 "Pennsylvania" 2 "New Jersey") rows(1) position(6)) ///
+    xtitle("Wage Range") ytitle("Percent of Stores") ///
+    xlabel(4.30(0.10)5.50, angle(45) labsize(small)) ///
+    ylabel(0(10)90) ///
+    title("November 1992") ///
+    graphregion(color(white)) plotregion(color(white)) ///
+    name(fig1b, replace)
+
+*---- 6. Combine both panels -------------------------------------------------
+graph combine fig1a fig1b, ///
+    rows(2) ///
+    graphregion(color(white)) ///
+    title("Figure 1. Distribution of Starting Wage Rates", size(medium))
+
+graph export "Figure1.png", replace width(2000)
