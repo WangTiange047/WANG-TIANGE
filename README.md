@@ -13,10 +13,10 @@ Data source: Course-provided package **01_DID.zip**, `public.csv`.
 The raw `public.csv` file is downloaded in my computer.
 
 ## How to Reproduce the Results
-1. Download and extract `01_DID.zip` to your local machine.
+1. Download and extract `01_DID.zip` to drive D on your computer, AS **"D:/public.csv"**.
 2. Open Stata and modify the file path inside `code` to point to your local `public.csv`.
-3. Execute `code.do`,which will automatically run data cleaning and baseline replication.
-4. All regression outputs, like tables and figures files will be saved into the `output` folder.
+3. Execute `ALL_CODE.do`,which will automatically run data cleaning and baseline replication.
+4. All regression outputs, like tables and figures files will be saved into the folder.
 
 ## Software
 Software: Stata
