@@ -1,0 +1,105 @@
+*===============================================================================
+*  Card & Krueger (1994)  Table 4  Reduced-Form Models for Change in Employment
+*===============================================================================
+
+clear all
+set more off
+
+*===============================================================================
+* 1. 读入数据
+*===============================================================================
+import delimited "E:/HKU ECON/6067/01_DID/data/public.csv", clear
+rename *, lower
+
+*===============================================================================
+* 2. 变量构造
+*===============================================================================
+
+*---- 2.1 就业 (FTE) 与就业变化 ----
+gen fte_before = empft  + 0.5*emppt  + nmgrs
+gen fte_after  = empft2 + 0.5*emppt2 + nmgrs2
+
+*     永久关闭店(STATUS2==3) -> 第2波就业记为 0
+*     临时关闭/拒访店        -> 第2波就业记为缺失
+replace fte_after = 0 if status2 == 3
+replace fte_after = . if inlist(status2, 0, 2, 4)
+
+gen delta_emp = fte_after - fte_before
+
+*---- 2.2 New Jersey dummy ----
+gen byte nj = (state == 1)
+
+*---- 2.3初始工资缺口 (GAP) ----
+*     论文定义 (脚注 a):
+*       - PA 店                       -> gap = 0
+*       - NJ 店 且 wage_st >= 5.05    -> gap = 0
+*       - NJ 店 且 wage_st <  5.05    -> gap = (5.05 - wage_st) / wage_st
+*     注意: 分子是 5.05, 不是 4.25
+gen wage_gap = 0
+replace wage_gap = (5.05 - wage_st) / wage_st ///
+    if state == 1 & wage_st < 5.05 & !missing(wage_st)
+
+*---- 2.4 连锁 dummy (基准组 Burger King=1) ----
+gen byte chain_kfc       = (chain == 2)
+gen byte chain_royrogers = (chain == 3)
+gen byte chain_wendys    = (chain == 4)
+
+*---- 2.5 公司直营 dummy ----
+* co_owned 已经是 0/1, 直接用
+
+*---- 2.6 Table 4 子样本 (脚注 a: N = 357) ----
+*     两波就业 + 第1波工资都非缺失
+*     永久关闭店的第2波工资允许缺失 (但已置 fte_after=0 入选)
+gen byte sample_t4 = !missing(fte_before, fte_after, wage_st)
+replace sample_t4 = 0 if missing(fte_before, fte_after, wage_st)
+replace sample_t4 = 1 if sample_t4 == 0 & !missing(fte_before) & !missing(wage_st) ///
+                         & status2 == 3
+
+display "Table 4 样本 N = " %3.0f sample_t4  " (论文 357)"
+
+*===============================================================================
+* 3. 五个回归
+*===============================================================================
+
+*---- (i)  NJ dummy only ----
+reg delta_emp nj if sample_t4 == 1
+
+*---- (ii) NJ + chain & ownership controls ----
+reg delta_emp nj chain_kfc chain_royrogers chain_wendys co_owned if sample_t4 == 1
+
+*---- (iii) Initial wage gap only ----
+reg delta_emp wage_gap if sample_t4 == 1
+
+*---- (iv) Initial wage gap + chain & ownership ----
+reg delta_emp wage_gap chain_kfc chain_royrogers chain_wendys co_owned if sample_t4 == 1
+
+*---- (v) Initial wage gap + chain & ownership + region controls ----
+*     区域变量直接用 southj / centralj / pa1 / pa2 本身 (它们已是 0/1)
+*     基准组: NJ 北部 (northj) + PA 其他地区, 与论文 "2个NJ区域 + 2个PA区域" 一致
+*     注: 不含 shore, 论文(v) 也没加
+reg delta_emp wage_gap chain_kfc chain_royrogers chain_wendys co_owned ///
+    southj i.pa1 pa2 if sample_t4 == 1
+
+*===============================================================================
+* 4. 导出到 Word (RTF)
+*===============================================================================
+* 若未安装 estout:  ssc install estout
+
+eststo clear
+eststo m1: reg delta_emp nj if sample_t4 == 1
+eststo m2: reg delta_emp nj chain_kfc chain_royrogers chain_wendys co_owned if sample_t4 == 1
+eststo m3: reg delta_emp wage_gap if sample_t4 == 1
+eststo m4: reg delta_emp wage_gap chain_kfc chain_royrogers chain_wendys co_owned if sample_t4 == 1
+eststo m5: reg delta_emp wage_gap chain_kfc chain_royrogers chain_wendys co_owned ///
+              southj i.pa1 pa2 if sample_t4 == 1
+
+* 把 3 个 chain dummy 合在一起显示
+esttab m1 m2 m3 m4 m5 using "Table4_Reduced_Form.rtf", replace ///
+    b(%9.2f) se(%9.2f) ///
+    star(* 0.10 ** 0.05 *** 0.01) ///
+    title("Table 4 -- Reduced-Form Models for Change in Employment") ///
+    mtitles("(i)" "(ii)" "(iii)" "(iv)" "(v)") ///
+    keep(nj wage_gap chain_kfc chain_royrogers chain_wendys co_owned) ///
+    order(nj wage_gap chain_kfc chain_royrogers chain_wendys co_owned) ///
+    stats(N r2 rmse, labels("Observations" "R-squared" "Std. error of regression")) ///
+    nogaps
