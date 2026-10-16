@@ -7,7 +7,7 @@ clear all
 set more off
 
 *---- 1. Import data ----------------------------------------------------------
-import delimited "E:/HKU ECON/6067/01_DID/data/public.csv", clear
+import delimited "D:/public.csv", clear
 rename *, lower
 
 *---- 2. Prepare wage variables ----------------------------------------------
