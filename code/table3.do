@@ -6,7 +6,7 @@
 *==============================================================================
 * 1. 读入数据
 *===============================================================================
-import delimited "E:/HKU ECON/6067/01_DID/data/public.csv", clear
+import delimited "D:/public.csv", clear
 gen flag_delete = (missing(empft) | missing(emppt) | missing(nmgrs))
 tab flag_delete
 
